@@ -1,0 +1,64 @@
+{
+  "name": "qr-upload-sdk",
+  "version": "1.0.0",
+  "description": "Let users upload an image from their phone to your app by scanning a QR code. Client + drop-in widget for QR-UPLOAD-API.",
+  "keywords": [
+    "qr",
+    "qr-code",
+    "upload",
+    "image-upload",
+    "kiosk",
+    "cross-device",
+    "react",
+    "sse"
+  ],
+  "homepage": "https://github.com/limeloop/qr-upload-sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/limeloop/qr-upload-sdk.git"
+  },
+  "license": "MIT",
+  "author": "Limeloop AB",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js",
+      "require": "./dist/react.cjs"
+    }
+  },
+  "unpkg": "./dist/qr-upload.global.js",
+  "jsdelivr": "./dist/qr-upload.global.js",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=17"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.31",
+    "react": "^18.3.1",
+    "tsup": "^9.0.0",
+    "typescript": "^5.9.3"
+  }
+}

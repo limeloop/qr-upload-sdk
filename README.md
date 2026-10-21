@@ -1,0 +1,314 @@
+# qr-upload-sdk
+
+**Let a user upload an image from their phone to your app, just by scanning a QR code.**
+
+Made for screens where picking a file is awkward or impossible: a monitor at a fair, a kiosk, a shared laptop, a TV. Your app shows a QR code, the user scans it and picks a photo on their phone, and your app gets back a permanent image URL a moment later, with live progress along the way.
+
+```
+  Your app (screen)                         Phone
+  ┌───────────────────┐                     ┌──────────────────┐
+  │  ▄▄▄ ▄ ▄▄▄        │   scan              │ Upload an image  │
+  │  █▄█ ▀ █▄█        │ ──────────────────▶ │ [ choose photo ] │
+  │  Scan to upload   │                     │ [   Upload    ]  │
+  └───────────────────┘                     └──────────────────┘
+          │  "Phone connected" → progress 0–100% → "Image received"
+          ▼
+  onComplete(file) → file.url = https://upload.example.com/f/k8Dvm4DE….jpg
+```
+
+- **Drop-in widget** (React or plain JS) with the QR code, status, progress bar and image preview. Expired codes renew automatically.
+- **Typed client** for building your own UI or calling the API from your backend.
+- **Live updates** over Server-Sent Events, falling back to polling.
+- Small, no runtime dependencies, works in any framework.
+
+> You need a running **QR-UPLOAD-API** server: the self-hosted backend that makes the QR codes, hosts the phone upload page and stores the images. You'll need its URL (e.g. `https://upload.example.com`) and an API key.
+
+---
+
+## Install
+
+```bash
+npm install github:limeloop/qr-upload-sdk
+```
+
+Once it's published to npm you can use `npm install qr-upload-sdk` instead. For a plain `<script>` tag:
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/limeloop/qr-upload-sdk@main/dist/qr-upload.global.js"></script>
+<!-- window.QrUpload.mountQrUpload(...) -->
+```
+
+## Quick start (React)
+
+```tsx
+import { QrUpload } from "qr-upload-sdk/react";
+
+export function PhotoFromPhone({ onUploaded }: { onUploaded: (url: string) => void }) {
+  return (
+    <QrUpload
+      baseUrl="https://upload.example.com"
+      session={() => fetch("/api/qr-session", { method: "POST" }).then((r) => r.json())}
+      onComplete={(file) => onUploaded(file.url)}
+    />
+  );
+}
+```
+
+`session` is a function that asks **your backend** for a new upload session. Your backend holds the API key; see [Keep your API key secret](#keep-your-api-key-secret).
+
+---
+
+## Using it in a Lovable app
+
+Lovable apps are React plus Supabase, so session creation goes in a **Supabase Edge Function** (where the API key lives) and the widget goes in a React component.
+
+### 1. Add the secrets
+
+In Supabase (or Lovable → *Cloud* / *Supabase* → *Secrets*), add:
+
+| Secret | Value |
+|---|---|
+| `QR_UPLOAD_URL` | `https://upload.example.com` |
+| `QR_UPLOAD_API_KEY` | your API key |
+
+On the QR-UPLOAD-API server, allow your app's origins, previews included:
+
+```
+CORS_ORIGINS=https://your-app.lovable.app,https://*.lovable.app,https://your-custom-domain.com
+```
+
+### 2. Edge function: `supabase/functions/qr-upload-session/index.ts`
+
+```ts
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const { title, description, metadata } = await req.json().catch(() => ({}));
+  const res = await fetch(`${Deno.env.get("QR_UPLOAD_URL")}/api/sessions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${Deno.env.get("QR_UPLOAD_API_KEY")}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ title, description, metadata }),
+  });
+
+  return new Response(await res.text(), {
+    status: res.status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+});
+```
+
+By default Supabase only lets signed-in users call the function (`verify_jwt`). If your kiosk runs without a signed-in user, set `verify_jwt = false` for this function in `supabase/config.toml`. The QR codes stay short-lived and single-use either way.
+
+### 3. Component
+
+```tsx
+import { QrUpload } from "qr-upload-sdk/react";
+import { supabase } from "@/integrations/supabase/client";
+
+export function UploadFromPhone({ onUploaded }: { onUploaded: (url: string) => void }) {
+  return (
+    <QrUpload
+      baseUrl={import.meta.env.VITE_QR_UPLOAD_URL ?? "https://upload.example.com"}
+      session={async () => {
+        const { data, error } = await supabase.functions.invoke("qr-upload-session", {
+          body: { title: "Send a photo to the screen" },
+        });
+        if (error) throw error;
+        return data;
+      }}
+      onComplete={(file) => onUploaded(file.url)}
+    />
+  );
+}
+```
+
+### Prompt you can paste into Lovable
+
+> Install the npm package `github:limeloop/qr-upload-sdk`. Create a Supabase Edge Function `qr-upload-session` that POSTs to `${QR_UPLOAD_URL}/api/sessions` with header `Authorization: Bearer ${QR_UPLOAD_API_KEY}` and JSON body `{ title, description, metadata }` from the request, and returns the JSON response (with CORS headers). Then add a component that renders `<QrUpload />` from `qr-upload-sdk/react` with `baseUrl="https://upload.example.com"`, a `session` prop that calls `supabase.functions.invoke("qr-upload-session")` and returns `data`, and an `onComplete={(file) => ...}` that uses `file.url` as the image URL. Add a button "Upload from phone" that opens it in a dialog, and close the dialog when the upload completes.
+
+---
+
+## Plain JavaScript
+
+```ts
+import { mountQrUpload } from "qr-upload-sdk";
+
+const widget = mountQrUpload("#qr", {
+  baseUrl: "https://upload.example.com",
+  session: () => fetch("/api/qr-session", { method: "POST" }).then((r) => r.json()),
+  onComplete(file) {
+    document.querySelector("img")!.src = file.url;
+  },
+});
+
+widget.restart(); // show a new code
+widget.destroy(); // remove it
+```
+
+## Headless: build your own UI
+
+```ts
+import { QrUploadClient } from "qr-upload-sdk";
+
+const qr = new QrUploadClient({ baseUrl: "https://upload.example.com", apiKey: process.env.QR_UPLOAD_API_KEY });
+
+const session = await qr.createSession({ title: "Upload your logo", metadata: { userId: "42" } });
+showImage(session.qrCodeDataUrl!); // data:image/png;base64,…
+
+const file = await qr.waitForUpload(session.id, {
+  onUpdate(s) {
+    // s.status: "pending" | "opened" | "uploading" | "completed" | "expired"
+    if (s.progress?.total) setProgress(s.progress.loaded / s.progress.total);
+  },
+});
+console.log(file.url);
+```
+
+`waitForUpload` and `subscribe` only need the session id, so they work in the browser without an API key.
+
+---
+
+## Keep your API key secret
+
+The API key lets someone create sessions and list or delete files. Don't ship it to browsers:
+
+- ✅ Create sessions on your backend (an edge function, API route or server) and pass `session={() => fetch(...)}`.
+- ✅ Watching a session from the browser needs no key; the session id is enough.
+- ⚠️ `apiKey` straight on the widget is only OK for a closed kiosk where nobody can read the page source.
+
+Each QR code works for **one** upload and **expires** (15 minutes by default, set with `ttlSeconds`).
+
+---
+
+## Reference
+
+### `<QrUpload />` (from `qr-upload-sdk/react`)
+
+Takes every `mountQrUpload` option below, plus `className`, `style` and `widgetRef`. Callbacks can change between renders. The widget is only recreated when `baseUrl`, `apiKey` or `client` changes.
+
+### `mountQrUpload(target, options)`
+
+`target` is an element or a CSS selector. It returns `{ session, restart(), destroy() }`.
+
+| Option | Type | Default | |
+|---|---|---|---|
+| `baseUrl` | `string` | | QR-UPLOAD-API URL. Or pass `client`. |
+| `session` | `() => Promise<QrUploadSession>` or `QrUploadSession` | | Where sessions come from. Omit it to create sessions with `apiKey`. |
+| `apiKey` | `string` | | Only without `session` (kiosk mode). |
+| `client` | `QrUploadClient` | | Use an existing client. |
+| `sessionOptions` | `CreateSessionOptions` | | Used when the widget creates sessions itself. |
+| `onComplete` | `(file, session) => void` | | Called once per uploaded image. |
+| `onUpdate` | `(session) => void` | | Every status and progress change. |
+| `onError` | `(error) => void` | | |
+| `autoRenew` | `boolean` | `true` | Get a new code when one expires. |
+| `showPreview` | `boolean` | `true` | Show the received image in the widget. |
+| `size` | `number` | `240` | QR size in px. |
+| `labels` | `Partial<QrUploadLabels>` | English | All texts; see below. |
+
+### `new QrUploadClient({ baseUrl, apiKey?, fetch? })`
+
+| Method | Needs key | Returns |
+|---|---|---|
+| `createSession(options?)` | ✓ | `QrUploadSession`, including `qrCodeDataUrl` |
+| `getSession(id)` | | `QrUploadSession` |
+| `subscribe(id, onUpdate, onError?)` | | `unsubscribe()`; stops by itself once completed or expired |
+| `waitForUpload(id, { onUpdate?, signal? })` | | `UploadedFile`; rejects with `QrUploadExpiredError` |
+| `cancelSession(id)` | ✓ | `QrUploadSession` |
+| `listFiles({ limit?, before? })` | ✓ | `{ files, nextBefore }` |
+| `getFile(id)` / `deleteFile(id)` | ✓ | `UploadedFile` / `{ deleted: true }` |
+
+Errors are thrown as `QrUploadError` (with `.status`).
+
+### `CreateSessionOptions`
+
+```ts
+{
+  title?: string;                     // heading on the phone
+  description?: string;               // text under the heading on the phone
+  metadata?: Record<string, unknown>; // stored with the session and the file (user id, booth, …)
+  ttlSeconds?: number;                // how long the code is valid (30 s – 24 h)
+  qrSize?: number;                    // QR PNG size, 128–2048 px
+}
+```
+
+### `UploadedFile`
+
+```ts
+{ id, url, filename, contentType, size, metadata, sessionId, createdAt }
+```
+
+`url` is public and permanent (cached as immutable), so it's fine to save in your database or use in `<img>`.
+
+---
+
+## Customizing
+
+### Texts (e.g. Swedish)
+
+```tsx
+<QrUpload
+  labels={{
+    scan: "Skanna för att ladda upp",
+    scanHint: "Öppna kameran i mobilen och rikta den mot koden.",
+    connected: "Mobilen är ansluten",
+    connectedHint: "Välj en bild i mobilen.",
+    uploading: "Tar emot bild…",
+    completed: "Bilden är mottagen",
+    expired: "Koden har gått ut",
+    newCode: "Ny kod",
+    uploadAnother: "Ladda upp en till",
+    error: "Något gick fel",
+    retry: "Försök igen",
+    expiresIn: (t) => `Koden går ut om ${t}`,
+  }}
+  /* … */
+/>
+```
+
+Set the texts shown on the phone with `title` and `description` when you create the session.
+
+### Look
+
+The widget uses plain DOM with `qru-` class names. Theme it with CSS variables:
+
+```css
+.qru {
+  --qru-accent: #4f46e5;     /* progress bar, buttons */
+  --qru-accent-fg: #fff;
+  --qru-bg: transparent;
+  --qru-fg: #111827;
+  --qru-muted: #6b7280;
+  --qru-line: transparent;   /* border */
+  --qru-radius: 24px;
+  --qru-font: "Inter", sans-serif;
+}
+```
+
+The current state is on the root element as `data-status` (`pending`, `opened`, `uploading`, `completed`, `expired`), for state-specific styling.
+
+---
+
+## Development
+
+```bash
+npm install
+npm run build        # dist/: ESM, CJS, .d.ts, and qr-upload.global.js
+npm run typecheck
+```
+
+Try it against a local server: `python3 -m http.server 5178`, then open
+`http://localhost:5178/examples/react.html?api=http://localhost:3000&key=<API_KEY>` (or `kiosk.html`).
+
+`dist/` is committed so that `npm install github:limeloop/qr-upload-sdk` works without a build step. Run `npm run build` before committing source changes.
+
+## License
+
+MIT

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR Upload React</title>
+<style>body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f5f5f4; font-family: system-ui, sans-serif; }</style>
+<script type="importmap">
+{ "imports": {
+  "react": "https://esm.sh/react@18.3.1",
+  "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+  "react-dom/client": "https://esm.sh/react-dom@18.3.1/client"
+} }
+</script>
+</head>
+<body>
+  <div id="app"></div>
+  <!-- Local demo of the React component (no bundler). Run `npm run build` first.
+       react.html?api=http://localhost:3000&key=YOUR_API_KEY -->
+  <script type="module">
+    import { createElement as h, useState } from "react";
+    import { createRoot } from "react-dom/client";
+    import { QrUpload } from "../dist/react.js";
+
+    const params = new URLSearchParams(location.search);
+    function App() {
+      const [url, setUrl] = useState(null);
+      return h("div", { style: { textAlign: "center" } },
+        h(QrUpload, {
+          baseUrl: params.get("api") || "http://localhost:3000",
+          apiKey: params.get("key"),
+          onComplete: (file) => setUrl(file.url),
+        }),
+        url && h("p", { id: "result" }, url));
+    }
+    createRoot(document.getElementById("app")).render(h(App));
+  </script>
+</body>
+</html>
