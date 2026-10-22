@@ -110,10 +110,12 @@ var QrUploadClient = class {
       });
     });
   }
+  /** Newest first. `directory` filters to one customer directory ("_none" = files outside any directory). */
   listFiles(options = {}) {
     const q = new URLSearchParams();
     if (options.limit) q.set("limit", String(options.limit));
     if (options.before) q.set("before", options.before);
+    if (options.directory) q.set("directory", options.directory);
     return this.request(`/api/files?${q}`, {}, true);
   }
   getFile(id) {
@@ -364,4 +366,4 @@ export {
   defaultLabels,
   mountQrUpload
 };
-//# sourceMappingURL=chunk-3GJ4UHYP.js.map
+//# sourceMappingURL=chunk-3CRZPLO7.js.map

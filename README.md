@@ -88,14 +88,14 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const { title, description, metadata } = await req.json().catch(() => ({}));
+  const { title, description, metadata, directory } = await req.json().catch(() => ({}));
   const res = await fetch(`${Deno.env.get("QR_UPLOAD_URL")}/api/sessions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${Deno.env.get("QR_UPLOAD_API_KEY")}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ title, description, metadata }),
+    body: JSON.stringify({ title, description, metadata, directory }),
   });
 
   return new Response(await res.text(), {
@@ -132,7 +132,7 @@ export function UploadFromPhone({ onUploaded }: { onUploaded: (url: string) => v
 
 ### Prompt you can paste into Lovable
 
-> Install the npm package `github:limeloop/qr-upload-sdk`. Create a Supabase Edge Function `qr-upload-session` that POSTs to `${QR_UPLOAD_URL}/api/sessions` with header `Authorization: Bearer ${QR_UPLOAD_API_KEY}` and JSON body `{ title, description, metadata }` from the request, and returns the JSON response (with CORS headers). Then add a component that renders `<QrUpload />` from `qr-upload-sdk/react` with `baseUrl="https://upload.example.com"`, a `session` prop that calls `supabase.functions.invoke("qr-upload-session")` and returns `data`, and an `onComplete={(file) => ...}` that uses `file.url` as the image URL. Add a button "Upload from phone" that opens it in a dialog, and close the dialog when the upload completes.
+> Install the npm package `github:limeloop/qr-upload-sdk`. Create a Supabase Edge Function `qr-upload-session` that POSTs to `${QR_UPLOAD_URL}/api/sessions` with header `Authorization: Bearer ${QR_UPLOAD_API_KEY}` and JSON body `{ title, description, metadata, directory }` from the request, and returns the JSON response (with CORS headers). Then add a component that renders `<QrUpload />` from `qr-upload-sdk/react` with `baseUrl="https://upload.example.com"`, a `session` prop that calls `supabase.functions.invoke("qr-upload-session")` and returns `data`, and an `onComplete={(file) => ...}` that uses `file.url` as the image URL. Add a button "Upload from phone" that opens it in a dialog, and close the dialog when the upload completes.
 
 ---
 
@@ -175,6 +175,20 @@ console.log(file.url);
 `waitForUpload` and `subscribe` only need the session id, so they work in the browser without an API key.
 
 ---
+
+## Customer directories
+
+Group uploads per customer. First create a directory in the server's admin (`https://upload.example.com/admin` → **New directory**), e.g. `acme`. Then pass its slug when you create a session:
+
+```ts
+await qr.createSession({ directory: "acme", title: "Send a photo to Acme" });
+```
+
+The image is stored in that directory and gets a URL like `https://upload.example.com/acme/k8Dvm4DE….jpg` (`file.directory === "acme"`). An unknown slug is rejected with a 400 error, so create directories in the admin first.
+
+Each directory also has its own kiosk page at `https://upload.example.com/acme`, behind the admin login, so you don't need any app for a monitor: open the URL and it shows a QR code for that customer.
+
+With the Lovable edge function above, pass it through the request body: `supabase.functions.invoke("qr-upload-session", { body: { directory: "acme" } })`.
 
 ## Keep your API key secret
 
@@ -222,7 +236,7 @@ Takes every `mountQrUpload` option below, plus `className`, `style` and `widgetR
 | `subscribe(id, onUpdate, onError?)` | | `unsubscribe()`; stops by itself once completed or expired |
 | `waitForUpload(id, { onUpdate?, signal? })` | | `UploadedFile`; rejects with `QrUploadExpiredError` |
 | `cancelSession(id)` | ✓ | `QrUploadSession` |
-| `listFiles({ limit?, before? })` | ✓ | `{ files, nextBefore }` |
+| `listFiles({ limit?, before?, directory? })` | ✓ | `{ files, nextBefore }`; `directory: "_none"` lists files outside any directory |
 | `getFile(id)` / `deleteFile(id)` | ✓ | `UploadedFile` / `{ deleted: true }` |
 
 Errors are thrown as `QrUploadError` (with `.status`).
@@ -234,6 +248,7 @@ Errors are thrown as `QrUploadError` (with `.status`).
   title?: string;                     // heading on the phone
   description?: string;               // text under the heading on the phone
   metadata?: Record<string, unknown>; // stored with the session and the file (user id, booth, …)
+  directory?: string;                 // customer directory slug; must exist on the server
   ttlSeconds?: number;                // how long the code is valid (30 s – 24 h)
   qrSize?: number;                    // QR PNG size, 128–2048 px
 }
@@ -242,7 +257,7 @@ Errors are thrown as `QrUploadError` (with `.status`).
 ### `UploadedFile`
 
 ```ts
-{ id, url, filename, contentType, size, metadata, sessionId, createdAt }
+{ id, url, filename, contentType, size, metadata, directory, sessionId, createdAt }
 ```
 
 `url` is public and permanent (cached as immutable), so it's fine to save in your database or use in `<img>`.

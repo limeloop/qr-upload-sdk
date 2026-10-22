@@ -148,10 +148,12 @@ export class QrUploadClient {
     });
   }
 
-  listFiles(options: { limit?: number; before?: string } = {}) {
+  /** Newest first. `directory` filters to one customer directory ("_none" = files outside any directory). */
+  listFiles(options: { limit?: number; before?: string; directory?: string } = {}) {
     const q = new URLSearchParams();
     if (options.limit) q.set("limit", String(options.limit));
     if (options.before) q.set("before", options.before);
+    if (options.directory) q.set("directory", options.directory);
     return this.request<{ files: UploadedFile[]; nextBefore: string | null }>(`/api/files?${q}`, {}, true);
   }
 

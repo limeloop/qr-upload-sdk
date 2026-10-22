@@ -7,6 +7,8 @@ interface UploadedFile {
     contentType: string;
     size: number;
     metadata: Record<string, unknown>;
+    /** Customer directory the image belongs to, or null. */
+    directory: string | null;
     sessionId: string | null;
     createdAt: string;
 }
@@ -26,6 +28,7 @@ interface QrUploadSession {
     title: string | null;
     description: string | null;
     metadata: Record<string, unknown>;
+    directory: string | null;
     createdAt: string;
     expiresAt: string;
     openedAt: string | null;
@@ -40,6 +43,11 @@ interface CreateSessionOptions {
     description?: string;
     /** Stored with the session and the uploaded file (e.g. your user/booth id). */
     metadata?: Record<string, unknown>;
+    /**
+     * Slug of a customer directory (created in the server's /admin). The image is stored there and
+     * its URL becomes https://<server>/<directory>/<id>.jpg.
+     */
+    directory?: string;
     /** How long the QR code stays valid. Default set by the server (15 min). */
     ttlSeconds?: number;
     /** QR image size in px (128–2048). */
@@ -86,9 +94,11 @@ declare class QrUploadClient {
         onUpdate?: (session: QrUploadSession) => void;
         signal?: AbortSignal;
     }): Promise<UploadedFile>;
+    /** Newest first. `directory` filters to one customer directory ("_none" = files outside any directory). */
     listFiles(options?: {
         limit?: number;
         before?: string;
+        directory?: string;
     }): Promise<{
         files: UploadedFile[];
         nextBefore: string | null;
