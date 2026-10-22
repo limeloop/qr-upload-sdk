@@ -69,13 +69,9 @@ In Supabase (or Lovable → *Cloud* / *Supabase* → *Secrets*), add:
 | Secret | Value |
 |---|---|
 | `QR_UPLOAD_URL` | `https://upload.example.com` |
-| `QR_UPLOAD_API_KEY` | your API key |
+| `QR_UPLOAD_API_KEY` | a **directory key** for this customer (`qru_…`, from the server's `/admin` → directory → **API keys**) |
 
-On the QR-UPLOAD-API server, allow your app's origins, previews included:
-
-```
-CORS_ORIGINS=https://your-app.lovable.app,https://*.lovable.app,https://your-custom-domain.com
-```
+When you create the key, set its allowed origins to your app's addresses, previews included, e.g. `https://your-app.lovable.app, https://*.lovable.app, https://your-custom-domain.com`. The server allows these origins for CORS automatically. A directory key always uploads into its own directory, so the app doesn't need to pass `directory`.
 
 ### 2. Edge function: `supabase/functions/qr-upload-session/index.ts`
 
@@ -192,7 +188,7 @@ With the Lovable edge function above, pass it through the request body: `supabas
 
 ## Keep your API key secret
 
-The API key lets someone create sessions and list or delete files. Don't ship it to browsers:
+The API key lets someone create sessions and list or delete files. Use a **directory key** per client app (created in the server's `/admin`). It only reaches that customer's directory, can be limited to your app's origins, and can be revoked on its own. Even so, don't ship it to browsers:
 
 - ✅ Create sessions on your backend (an edge function, API route or server) and pass `session={() => fetch(...)}`.
 - ✅ Watching a session from the browser needs no key; the session id is enough.
