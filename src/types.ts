@@ -7,6 +7,9 @@ export interface UploadedFile {
   filename: string;
   contentType: string;
   size: number;
+  /** Pixel size after the server optimized the image; null for GIF/HEIC kept as uploaded. */
+  width: number | null;
+  height: number | null;
   metadata: Record<string, unknown>;
   /** Customer directory the image belongs to, or null. */
   directory: string | null;

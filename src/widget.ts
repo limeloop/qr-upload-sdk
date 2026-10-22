@@ -208,7 +208,8 @@ export function mountQrUpload(target: HTMLElement | string, options: MountQrUplo
       const frame = el("div", "qru-frame");
       if (showPreview && s.file.contentType.startsWith("image/") && !/hei[cf]/.test(s.file.contentType)) {
         const img = el("img", "qru-preview");
-        img.src = s.file.url;
+        // A server-side thumbnail; servers without thumbnails ignore ?w and send the full image.
+        img.src = s.file.url + "?w=480";
         img.alt = s.file.filename;
         frame.append(img);
       } else {

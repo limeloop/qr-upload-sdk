@@ -283,7 +283,7 @@ function mountQrUpload(target, options = {}) {
       const frame2 = el("div", "qru-frame");
       if (showPreview && s.file.contentType.startsWith("image/") && !/hei[cf]/.test(s.file.contentType)) {
         const img = el("img", "qru-preview");
-        img.src = s.file.url;
+        img.src = s.file.url + "?w=480";
         img.alt = s.file.filename;
         frame2.append(img);
       } else {

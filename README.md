@@ -31,7 +31,7 @@ Made for screens where picking a file is awkward or impossible: a monitor at a f
 npm install github:limeloop/qr-upload-sdk
 ```
 
-Pin a release so updates only arrive when you choose: `npm install github:limeloop/qr-upload-sdk#v1.1.0` (see [CHANGELOG](CHANGELOG.md)).
+Pin a release so updates only arrive when you choose: `npm install github:limeloop/qr-upload-sdk#v1.2.0` (see [CHANGELOG](CHANGELOG.md)).
 
 Once it's published to npm you can use `npm install qr-upload-sdk` instead. For a plain `<script>` tag:
 
@@ -255,10 +255,16 @@ Errors are thrown as `QrUploadError` (with `.status`).
 ### `UploadedFile`
 
 ```ts
-{ id, url, filename, contentType, size, metadata, directory, sessionId, createdAt }
+{ id, url, filename, contentType, size, width, height, metadata, directory, sessionId, createdAt }
 ```
 
 `url` is public and permanent (cached as immutable), so it's fine to save in your database or use in `<img>`.
+
+The server optimizes every upload for screens: rotated upright, **metadata such as GPS position removed**, scaled to at most 2560 px, re-encoded as JPEG (transparent images stay PNG). `width`/`height` give the stored size. For lists and previews, add `?w=` for a cached thumbnail:
+
+```tsx
+<img src={`${file.url}?w=480`} alt="" />   // widths snap to 160, 320, 480, 640, 960 or 1280
+```
 
 ---
 
