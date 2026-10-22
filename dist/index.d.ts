@@ -121,9 +121,14 @@ interface QrUploadLabels {
     uploadAnother: string;
     error: string;
     retry: string;
+    /** Alt text of the QR image (screen readers). */
+    qrAlt: string;
     expiresIn: (time: string) => string;
 }
+/** Default texts (Swedish). */
 declare const defaultLabels: QrUploadLabels;
+/** English texts: `mountQrUpload(el, { labels: englishLabels })`. */
+declare const englishLabels: QrUploadLabels;
 interface MountQrUploadOptions {
     /** A client, or pass baseUrl (+ apiKey) and one is created for you. */
     client?: QrUploadClient;
@@ -142,6 +147,7 @@ interface MountQrUploadOptions {
     showPreview?: boolean;
     /** QR size in CSS px. Default 240. */
     size?: number;
+    /** Override any text. Defaults are Swedish; pass `englishLabels` for English. */
     labels?: Partial<QrUploadLabels>;
     onComplete?: (file: UploadedFile, session: QrUploadSession) => void;
     onUpdate?: (session: QrUploadSession) => void;
@@ -159,5 +165,5 @@ interface QrUploadWidget {
  */
 declare function mountQrUpload(target: HTMLElement | string, options?: MountQrUploadOptions): QrUploadWidget;
 
-export { QrUploadClient, QrUploadError, QrUploadExpiredError, defaultLabels, mountQrUpload };
+export { QrUploadClient, QrUploadError, QrUploadExpiredError, defaultLabels, englishLabels, mountQrUpload };
 export type { CreateSessionOptions, MountQrUploadOptions, QrUploadClientOptions, QrUploadLabels, QrUploadSession, QrUploadWidget, SessionStatus, UploadProgress, UploadedFile };

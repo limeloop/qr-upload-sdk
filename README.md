@@ -31,6 +31,8 @@ Made for screens where picking a file is awkward or impossible: a monitor at a f
 npm install github:limeloop/qr-upload-sdk
 ```
 
+Pin a release so updates only arrive when you choose: `npm install github:limeloop/qr-upload-sdk#v1.1.0` (see [CHANGELOG](CHANGELOG.md)).
+
 Once it's published to npm you can use `npm install qr-upload-sdk` instead. For a plain `<script>` tag:
 
 ```html
@@ -221,7 +223,7 @@ Takes every `mountQrUpload` option below, plus `className`, `style` and `widgetR
 | `autoRenew` | `boolean` | `true` | Get a new code when one expires. |
 | `showPreview` | `boolean` | `true` | Show the received image in the widget. |
 | `size` | `number` | `240` | QR size in px. |
-| `labels` | `Partial<QrUploadLabels>` | English | All texts; see below. |
+| `labels` | `Partial<QrUploadLabels>` | Swedish | All texts; see below (`englishLabels` for English). |
 
 ### `new QrUploadClient({ baseUrl, apiKey?, fetch? })`
 
@@ -262,27 +264,23 @@ Errors are thrown as `QrUploadError` (with `.status`).
 
 ## Customizing
 
-### Texts (e.g. Swedish)
+### Texts
+
+The widget's texts are in **Swedish** by default ("Skanna för att ladda upp", "Mobilen är ansluten", "Tar emot bild…", "Bilden är mottagen", …). Override any of them with `labels`:
 
 ```tsx
-<QrUpload
-  labels={{
-    scan: "Skanna för att ladda upp",
-    scanHint: "Öppna kameran i mobilen och rikta den mot koden.",
-    connected: "Mobilen är ansluten",
-    connectedHint: "Välj en bild i mobilen.",
-    uploading: "Tar emot bild…",
-    completed: "Bilden är mottagen",
-    expired: "Koden har gått ut",
-    newCode: "Ny kod",
-    uploadAnother: "Ladda upp en till",
-    error: "Något gick fel",
-    retry: "Försök igen",
-    expiresIn: (t) => `Koden går ut om ${t}`,
-  }}
-  /* … */
-/>
+<QrUpload labels={{ scan: "Skanna med mobilen", completed: "Tack! Bilden är mottagen" }} /* … */ />
 ```
+
+For English, use the bundled `englishLabels`:
+
+```tsx
+import { englishLabels } from "qr-upload-sdk";
+
+<QrUpload labels={englishLabels} /* … */ />
+```
+
+All keys: `scan`, `scanHint`, `connected`, `connectedHint`, `uploading`, `completed`, `expired`, `newCode`, `uploadAnother`, `error`, `retry`, `qrAlt`, and `expiresIn: (time) => string`.
 
 Set the texts shown on the phone with `title` and `description` when you create the session.
 

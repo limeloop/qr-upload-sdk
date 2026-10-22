@@ -13,10 +13,30 @@ export interface QrUploadLabels {
   uploadAnother: string;
   error: string;
   retry: string;
+  /** Alt text of the QR image (screen readers). */
+  qrAlt: string;
   expiresIn: (time: string) => string;
 }
 
+/** Default texts (Swedish). */
 export const defaultLabels: QrUploadLabels = {
+  scan: "Skanna för att ladda upp",
+  scanHint: "Öppna kameran i mobilen och rikta den mot koden.",
+  connected: "Mobilen är ansluten",
+  connectedHint: "Välj en bild i mobilen.",
+  uploading: "Tar emot bild…",
+  completed: "Bilden är mottagen",
+  expired: "Koden har gått ut",
+  newCode: "Hämta en ny kod",
+  uploadAnother: "Ladda upp en till",
+  error: "Något gick fel",
+  retry: "Försök igen",
+  qrAlt: "QR-kod för att ladda upp en bild",
+  expiresIn: (t) => `Koden går ut om ${t}`,
+};
+
+/** English texts: `mountQrUpload(el, { labels: englishLabels })`. */
+export const englishLabels: QrUploadLabels = {
   scan: "Scan to upload",
   scanHint: "Open your phone camera and point it at the code.",
   connected: "Phone connected",
@@ -28,6 +48,7 @@ export const defaultLabels: QrUploadLabels = {
   uploadAnother: "Upload another",
   error: "Something went wrong",
   retry: "Try again",
+  qrAlt: "QR code for uploading an image",
   expiresIn: (t) => `Code expires in ${t}`,
 };
 
@@ -49,6 +70,7 @@ export interface MountQrUploadOptions {
   showPreview?: boolean;
   /** QR size in CSS px. Default 240. */
   size?: number;
+  /** Override any text. Defaults are Swedish; pass `englishLabels` for English. */
   labels?: Partial<QrUploadLabels>;
   onComplete?: (file: UploadedFile, session: QrUploadSession) => void;
   onUpdate?: (session: QrUploadSession) => void;
@@ -215,7 +237,7 @@ export function mountQrUpload(target: HTMLElement | string, options: MountQrUplo
     const frame = el("div", "qru-frame");
     const qr = el("img", "qru-qr");
     qr.src = qrSrc;
-    qr.alt = "QR code for uploading an image";
+    qr.alt = labels.qrAlt;
     frame.append(qr);
     root.append(frame);
 

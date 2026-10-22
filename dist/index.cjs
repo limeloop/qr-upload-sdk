@@ -24,6 +24,7 @@ __export(src_exports, {
   QrUploadError: () => QrUploadError,
   QrUploadExpiredError: () => QrUploadExpiredError,
   defaultLabels: () => defaultLabels,
+  englishLabels: () => englishLabels,
   mountQrUpload: () => mountQrUpload
 });
 module.exports = __toCommonJS(src_exports);
@@ -38,7 +39,7 @@ var QrUploadError = class extends Error {
 };
 var QrUploadExpiredError = class extends QrUploadError {
   constructor(session) {
-    super("The upload session expired before an image was uploaded");
+    super("Uppladdningskoden gick ut innan n\xE5gon bild laddades upp");
     this.session = session;
     this.name = "QrUploadExpiredError";
   }
@@ -53,13 +54,18 @@ var QrUploadClient = class {
   async request(path, init = {}, auth = false) {
     const headers = new Headers(init.headers);
     if (auth) {
-      if (!this.apiKey) throw new QrUploadError("This call needs an apiKey");
+      if (!this.apiKey) throw new QrUploadError("Det h\xE4r anropet kr\xE4ver en API-nyckel (apiKey)");
       headers.set("Authorization", `Bearer ${this.apiKey}`);
     }
     if (init.body) headers.set("Content-Type", "application/json");
-    const res = await this.fetchFn(`${this.baseUrl}${path}`, { ...init, headers });
+    let res;
+    try {
+      res = await this.fetchFn(`${this.baseUrl}${path}`, { ...init, headers });
+    } catch {
+      throw new QrUploadError("Kunde inte n\xE5 servern. Kontrollera anslutningen och f\xF6rs\xF6k igen.");
+    }
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new QrUploadError(data.error ?? `Request failed (${res.status})`, res.status);
+    if (!res.ok) throw new QrUploadError(data.error ?? `Beg\xE4ran misslyckades (${res.status})`, res.status);
     return data;
   }
   /** Create a new upload session. The response includes the QR code as `qrCodeDataUrl`. */
@@ -158,6 +164,21 @@ var QrUploadClient = class {
 
 // src/widget.ts
 var defaultLabels = {
+  scan: "Skanna f\xF6r att ladda upp",
+  scanHint: "\xD6ppna kameran i mobilen och rikta den mot koden.",
+  connected: "Mobilen \xE4r ansluten",
+  connectedHint: "V\xE4lj en bild i mobilen.",
+  uploading: "Tar emot bild\u2026",
+  completed: "Bilden \xE4r mottagen",
+  expired: "Koden har g\xE5tt ut",
+  newCode: "H\xE4mta en ny kod",
+  uploadAnother: "Ladda upp en till",
+  error: "N\xE5got gick fel",
+  retry: "F\xF6rs\xF6k igen",
+  qrAlt: "QR-kod f\xF6r att ladda upp en bild",
+  expiresIn: (t) => `Koden g\xE5r ut om ${t}`
+};
+var englishLabels = {
   scan: "Scan to upload",
   scanHint: "Open your phone camera and point it at the code.",
   connected: "Phone connected",
@@ -169,6 +190,7 @@ var defaultLabels = {
   uploadAnother: "Upload another",
   error: "Something went wrong",
   retry: "Try again",
+  qrAlt: "QR code for uploading an image",
   expiresIn: (t) => `Code expires in ${t}`
 };
 var STYLE_ID = "qr-upload-sdk-styles";
@@ -307,7 +329,7 @@ function mountQrUpload(target, options = {}) {
     const frame = el("div", "qru-frame");
     const qr = el("img", "qru-qr");
     qr.src = qrSrc;
-    qr.alt = "QR code for uploading an image";
+    qr.alt = labels.qrAlt;
     frame.append(qr);
     root.append(frame);
     if (s.status === "pending") {
@@ -394,6 +416,7 @@ function mountQrUpload(target, options = {}) {
   QrUploadError,
   QrUploadExpiredError,
   defaultLabels,
+  englishLabels,
   mountQrUpload
 });
 //# sourceMappingURL=index.cjs.map

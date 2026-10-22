@@ -23,7 +23,7 @@ export class QrUploadError extends Error {
 
 export class QrUploadExpiredError extends QrUploadError {
   constructor(public readonly session: QrUploadSession) {
-    super("The upload session expired before an image was uploaded");
+    super("Uppladdningskoden gick ut innan någon bild laddades upp");
     this.name = "QrUploadExpiredError";
   }
 }
@@ -44,13 +44,19 @@ export class QrUploadClient {
   private async request<T>(path: string, init: RequestInit = {}, auth = false): Promise<T> {
     const headers = new Headers(init.headers);
     if (auth) {
-      if (!this.apiKey) throw new QrUploadError("This call needs an apiKey");
+      if (!this.apiKey) throw new QrUploadError("Det här anropet kräver en API-nyckel (apiKey)");
       headers.set("Authorization", `Bearer ${this.apiKey}`);
     }
     if (init.body) headers.set("Content-Type", "application/json");
-    const res = await this.fetchFn(`${this.baseUrl}${path}`, { ...init, headers });
+    let res: Response;
+    try {
+      res = await this.fetchFn(`${this.baseUrl}${path}`, { ...init, headers });
+    } catch {
+      // Browsers only say "Failed to fetch" (offline, DNS, CORS); give the user something readable.
+      throw new QrUploadError("Kunde inte nå servern. Kontrollera anslutningen och försök igen.");
+    }
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new QrUploadError(data.error ?? `Request failed (${res.status})`, res.status);
+    if (!res.ok) throw new QrUploadError(data.error ?? `Begäran misslyckades (${res.status})`, res.status);
     return data as T;
   }
 
