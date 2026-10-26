@@ -115,12 +115,17 @@ var QrUploadClient = class {
       });
     });
   }
-  /** Newest first. `directory` filters to one customer directory ("_none" = files outside any directory). */
+  /**
+   * Newest first. `directory` filters to one directory ("acme", "acme/demo", or "_none" for files
+   * outside any directory); add `recursive: true` to include its sub-directories. With a directory
+   * key and no `directory`, the key's whole tree is listed.
+   */
   listFiles(options = {}) {
     const q = new URLSearchParams();
     if (options.limit) q.set("limit", String(options.limit));
     if (options.before) q.set("before", options.before);
     if (options.directory) q.set("directory", options.directory);
+    if (options.recursive) q.set("recursive", "1");
     return this.request(`/api/files?${q}`, {}, true);
   }
   getFile(id) {
@@ -388,4 +393,4 @@ export {
   englishLabels,
   mountQrUpload
 };
-//# sourceMappingURL=chunk-PW3TXCW2.js.map
+//# sourceMappingURL=chunk-A6CGXATQ.js.map

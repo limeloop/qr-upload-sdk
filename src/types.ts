@@ -11,7 +11,7 @@ export interface UploadedFile {
   width: number | null;
   height: number | null;
   metadata: Record<string, unknown>;
-  /** Customer directory the image belongs to, or null. */
+  /** Directory path the image belongs to ("acme" or "acme/demo"), or null. */
   directory: string | null;
   sessionId: string | null;
   createdAt: string;
@@ -51,8 +51,10 @@ export interface CreateSessionOptions {
   /** Stored with the session and the uploaded file (e.g. your user/booth id). */
   metadata?: Record<string, unknown>;
   /**
-   * Slug of a customer directory (created in the server's /admin). The image is stored there and
-   * its URL becomes https://<server>/<directory>/<id>.jpg.
+   * Where the image is stored: a customer directory ("acme", created in the server's /admin) or
+   * one of its sub-directories ("acme/demo", created automatically on first use; max two levels).
+   * The URL becomes https://<server>/<directory>/<id>.jpg. A directory key defaults to its own
+   * customer directory and may only name its own sub-directories.
    */
   directory?: string;
   /** How long the QR code stays valid. Default set by the server (15 min). */

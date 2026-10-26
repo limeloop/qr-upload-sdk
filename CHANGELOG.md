@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0 (2026-10-26)
+
+- **Sub-directories:** `createSession({ directory: "acme/demo" })`. Sub-directories of an existing customer directory are created on first use (max two levels, 50 per customer).
+- `listFiles({ directory, recursive })`: `recursive: true` includes sub-directories.
+- Docs: directory rules, key scope over sub-directories, Lovable guidance.
+
 ## 1.2.0 (2026-10-22)
 
 - `UploadedFile` has `width` and `height` (size after the server optimized the image).

@@ -5,7 +5,7 @@ import {
   defaultLabels,
   englishLabels,
   mountQrUpload
-} from "./chunk-PW3TXCW2.js";
+} from "./chunk-A6CGXATQ.js";
 export {
   QrUploadClient,
   QrUploadError,

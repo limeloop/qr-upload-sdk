@@ -31,7 +31,7 @@ Made for screens where picking a file is awkward or impossible: a monitor at a f
 npm install github:limeloop/qr-upload-sdk
 ```
 
-Pin a release so updates only arrive when you choose: `npm install github:limeloop/qr-upload-sdk#v1.2.0` (see [CHANGELOG](CHANGELOG.md)).
+Pin a release so updates only arrive when you choose: `npm install github:limeloop/qr-upload-sdk#v1.3.0` (see [CHANGELOG](CHANGELOG.md)).
 
 Once it's published to npm you can use `npm install qr-upload-sdk` instead. For a plain `<script>` tag:
 
@@ -176,17 +176,31 @@ console.log(file.url);
 
 ## Customer directories
 
-Group uploads per customer. First create a directory in the server's admin (`https://upload.example.com/admin` → **New directory**), e.g. `acme`. Then pass its slug when you create a session:
+Group uploads per customer, and optionally per purpose within a customer (a demo area, one folder per fair, …). Directories are at most two levels deep:
+
+| | Example | Created |
+|---|---|---|
+| Customer directory | `acme` | By hand in the server's admin (`https://upload.example.com/admin` → **New directory**) |
+| Sub-directory | `acme/demo`, `acme/fair-2026` | Automatically the first time a session uses it (or in the admin) |
+
+Pass the path when you create a session:
 
 ```ts
-await qr.createSession({ directory: "acme", title: "Send a photo to Acme" });
+await qr.createSession({ directory: "acme" });       // customer root
+await qr.createSession({ directory: "acme/demo" });  // sub-directory, created if missing
 ```
 
-The image is stored in that directory and gets a URL like `https://upload.example.com/acme/k8Dvm4DE….jpg` (`file.directory === "acme"`). An unknown slug is rejected with a 400 error, so create directories in the admin first.
+The image is stored there and gets a URL like `https://upload.example.com/acme/demo/k8Dvm4DE….jpg` (`file.directory === "acme/demo"`).
 
-Each directory also has its own kiosk page at `https://upload.example.com/acme`, behind the admin login, so you don't need any app for a monitor: open the URL and it shows a QR code for that customer.
+Rules:
+- Names use `a–z`, `0–9` and `-` (max 48 per level). A path is never renamed, because it's part of every image URL.
+- An unknown **customer** is rejected with 400; only **sub-directories** are created automatically, at most 50 per customer.
+- A **directory key** for `acme` uploads to `acme` when you pass no `directory`, may name any `acme/…` sub-directory, and gets 403 for anything else.
+- `listFiles({ directory: "acme" })` lists only the customer root; add `recursive: true` for the sub-directories too. A directory key without `directory` lists its whole tree.
 
-With the Lovable edge function above, pass it through the request body: `supabase.functions.invoke("qr-upload-session", { body: { directory: "acme" } })`.
+Every directory has its own kiosk page at `https://upload.example.com/acme` or `…/acme/demo` (admin login), showing a QR code for that directory.
+
+With the Lovable edge function above, choose the sub-directory **on the server** (e.g. from an allow-list such as `["demo"]`), and build the path from the client's directory: `` `${client.qr_directory}/${sub}` ``.
 
 ## Keep your API key secret
 

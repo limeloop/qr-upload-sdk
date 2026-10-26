@@ -10,7 +10,7 @@ interface UploadedFile {
     width: number | null;
     height: number | null;
     metadata: Record<string, unknown>;
-    /** Customer directory the image belongs to, or null. */
+    /** Directory path the image belongs to ("acme" or "acme/demo"), or null. */
     directory: string | null;
     sessionId: string | null;
     createdAt: string;
@@ -47,8 +47,10 @@ interface CreateSessionOptions {
     /** Stored with the session and the uploaded file (e.g. your user/booth id). */
     metadata?: Record<string, unknown>;
     /**
-     * Slug of a customer directory (created in the server's /admin). The image is stored there and
-     * its URL becomes https://<server>/<directory>/<id>.jpg.
+     * Where the image is stored: a customer directory ("acme", created in the server's /admin) or
+     * one of its sub-directories ("acme/demo", created automatically on first use; max two levels).
+     * The URL becomes https://<server>/<directory>/<id>.jpg. A directory key defaults to its own
+     * customer directory and may only name its own sub-directories.
      */
     directory?: string;
     /** How long the QR code stays valid. Default set by the server (15 min). */
@@ -97,11 +99,16 @@ declare class QrUploadClient {
         onUpdate?: (session: QrUploadSession) => void;
         signal?: AbortSignal;
     }): Promise<UploadedFile>;
-    /** Newest first. `directory` filters to one customer directory ("_none" = files outside any directory). */
+    /**
+     * Newest first. `directory` filters to one directory ("acme", "acme/demo", or "_none" for files
+     * outside any directory); add `recursive: true` to include its sub-directories. With a directory
+     * key and no `directory`, the key's whole tree is listed.
+     */
     listFiles(options?: {
         limit?: number;
         before?: string;
         directory?: string;
+        recursive?: boolean;
     }): Promise<{
         files: UploadedFile[];
         nextBefore: string | null;

@@ -1,6 +1,6 @@
 import {
   mountQrUpload
-} from "./chunk-PW3TXCW2.js";
+} from "./chunk-A6CGXATQ.js";
 
 // src/react.tsx
 import { useEffect, useRef } from "react";
